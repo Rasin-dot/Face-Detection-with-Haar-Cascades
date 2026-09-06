@@ -1,5 +1,8 @@
 # Face Detection using Haar Cascades with OpenCV and Matplotlib
 
+### Name : Rasindhan R
+### Register No : 212224230222
+
 ## Aim
 
 To write a Python program using OpenCV to perform the following image manipulations:  
@@ -56,147 +59,119 @@ iv) Perform face detection with label in real-time video from webcam.
 
 ## Program
 ```
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
-# =========================
-# PART 1: ROI SEGMENTATION
-# =========================
 
-image = cv2.imread('passport.jpg')
-
-if image is None:
-    print("Error: kp.jpeg not found")
-    exit()
-
+# Step 1: Read the image and convert the image into RGB
+image = cv2.imread('R.jpg')  # Replace with your image path
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+
+# Step 2: Display the original image
 plt.imshow(image_rgb)
 plt.title("Original Image")
-plt.axis('off')
+plt.axis('on')
 plt.show()
 
-# ROI
-roi = image[100:420, 200:550]
+# Step 4: Set the pixels to display the ROI (Region of Interest)
+# Define the coordinates for the Region of Interest (ROI)
+# (startY:endY, startX:endX)
+roi = image[100:420, 200:550]  # ROI coordinates (adjust as needed)
 
+# Create a blank mask of the same size as the original image
 mask = np.zeros_like(image)
+
+# Place the ROI on the mask
 mask[100:420, 200:550] = roi
 
-segmented = cv2.bitwise_and(image, mask)
 
-plt.imshow(cv2.cvtColor(segmented, cv2.COLOR_BGR2RGB))
+
+# Step 5: Perform bitwise conjunction of the two arrays using bitwise_and
+segmented_roi = cv2.bitwise_and(image, mask)
+
+
+# Step 6: Display the segmented ROI from the image
+segmented_roi_rgb = cv2.cvtColor(segmented_roi, cv2.COLOR_BGR2RGB)
+plt.imshow(segmented_roi_rgb)
 plt.title("Segmented ROI")
 plt.axis('off')
 plt.show()
 
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
 
-# =========================
-# PART 2: EDGE DETECTION
-# =========================
 
-image = cv2.imread('passport.jpg')
+# Step 1: Read the image and convert it to RGB for displaying
+image = cv2.imread('Rasi.jpg')  # Replace with your actual image file path
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+# Original Image
+plt.imshow(image_rgb)
+plt.title("Original Image")
+plt.axis('off')
 
-if image is None:
-    print("Error: kp.jpeg not found")
-    exit()
+# Step 2: Convert the image to grayscale
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
 
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-blur = cv2.GaussianBlur(gray, (5, 5), 0)
-edges = cv2.Canny(blur, 50, 150)
+# Step 3: Apply Gaussian blur to reduce noise
+blurred_image = cv2.GaussianBlur(gray_image, (5, 5), 0)  # Apply Gaussian blur (5x5 kernel)
 
+
+# Step 5: Use Canny edge detector to find edges
+edges = cv2.Canny(blurred_image, 50, 150)  # Detect edges using Canny (thresholds 50 and 150)
+# Canny Edge Detection
 plt.imshow(edges, cmap='gray')
 plt.title("Canny Edge Detection")
 plt.axis('off')
-plt.show()
 
+
+# Step 6: Find contours in the edged image
 contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-result = image.copy()
 
-for c in contours:
-    if cv2.contourArea(c) > 50:
-        x, y, w, h = cv2.boundingRect(c)
-        cv2.rectangle(result, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
-plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
-plt.title("Contour Detection")
+# Step 7: Filter contours based on area and draw bounding boxes
+result_image = image.copy()  # Create a copy of the original image to draw bounding boxes
+for contour in contours:
+    if cv2.contourArea(contour) > 50:  # Filter out small areas
+        x, y, w, h = cv2.boundingRect(contour)  # Get the bounding box for the contour
+        cv2.rectangle(result_image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Draw the rectangle
+# Handwriting Detection Result
+plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
+plt.title("Handwriting Detection")
 plt.axis('off')
-plt.show()
 
 
-# =========================
-# PART 3: OBJECT DETECTION (SAFE VERSION)
-# =========================
-
-config_file = 'deploy.prototxt'
-weights_file = 'mobilenet_iter_73000.caffemodel'
-
-# If model files NOT found → skip safely
-if not os.path.exists(config_file) or not os.path.exists(weights_file):
-    print("⚠️ Model files not found → Skipping Object Detection part")
-else:
-    net = cv2.dnn.readNetFromCaffe(config_file, weights_file)
-
-    class_labels = {
-        0:'background',1:'aeroplane',2:'bicycle',3:'bird',4:'boat',
-        5:'bottle',6:'bus',7:'car',8:'cat',9:'chair',10:'cow',
-        11:'diningtable',12:'dog',13:'horse',14:'motorbike',
-        15:'person',16:'pottedplant',17:'sheep',18:'sofa',
-        19:'train',20:'tvmonitor'
-    }
-
-    image = cv2.imread('passport.jpg')
-
-    if image is None:
-        print("Error: itac.jpeg not found")
-        exit()
-
-    (h, w) = image.shape[:2]
-
-    blob = cv2.dnn.blobFromImage(image, 0.007843, (300, 300), 127.5)
-    net.setInput(blob)
-    detections = net.forward()
-
-    for i in range(detections.shape[2]):
-        confidence = detections[0, 0, i, 2]
-
-        if confidence > 0.5:
-            idx = int(detections[0, 0, i, 1])
-            label = class_labels.get(idx, "Unknown")
-
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            (startX, startY, endX, endY) = box.astype("int")
-
-            cv2.rectangle(image, (startX, startY), (endX, endY), (0, 255, 0), 2)
-            cv2.putText(image, label, (startX, startY - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.title("Object Detection (MobileNet-SSD)")
-    plt.axis('off')
-    plt.show()
 ```
 ## Output
 
 - Original image:
 
-<img width="386" height="467" alt="image" src="https://github.com/user-attachments/assets/6697ef9c-8f27-4e08-a5d8-e2c6d9d8deac" />
+
+<img width="508" height="493" alt="image" src="https://github.com/user-attachments/assets/abc82831-ebb4-4a08-9a79-d868a2e6a0b9" />
 
 - Segmented ROI:
 
-<img width="370" height="471" alt="image" src="https://github.com/user-attachments/assets/4aa257f5-4c82-460d-844d-19ca8ab6c3f5" />
+
+<img width="367" height="472" alt="image" src="https://github.com/user-attachments/assets/16c3d8b5-a5a5-4f41-a5fe-b8b44868b37c" />
+
+
+- Original image:
+
+
+<img width="461" height="467" alt="image" src="https://github.com/user-attachments/assets/90dd4552-b1d4-47f7-9294-7f28b8117765" />
 
 
 - Canny Edge Detection:
 
-<img width="389" height="488" alt="image" src="https://github.com/user-attachments/assets/2e6b3d3f-f08f-4359-818a-93e555e44536" />
+<img width="473" height="477" alt="image" src="https://github.com/user-attachments/assets/212bb26f-1dd5-4786-bea6-347988ea599b" />
 
 
 - Contour Detection
 
-<img width="370" height="481" alt="image" src="https://github.com/user-attachments/assets/00497382-67bb-4704-ae34-ddf75d328cad" />
+<img width="465" height="477" alt="image" src="https://github.com/user-attachments/assets/929c6877-fff7-4937-a53a-004c1186d05c" />
 
     
 ## RESULT
